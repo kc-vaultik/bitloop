@@ -2,7 +2,7 @@
 
 Ternary and event-driven (spiking) recursive reasoning cores: what precision costs under weight-tied recursion.
 
-**Status (2026-11-20): early research, private working repository. Nothing here is a published result.**
+**Status (2026-11-20): early research, working repository, public since 2026-11-20. Nothing here is a peer-reviewed result.**
 
 ## What is here
 

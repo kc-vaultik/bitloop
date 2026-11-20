@@ -7,3 +7,5 @@
 
 The v0 hashes were recorded before this repository existed. The first commit of this repository is therefore the
 earliest independently dated record of them.
+
+The repository was made public on 2026-11-20; from that point its commit history is independently checkable.
