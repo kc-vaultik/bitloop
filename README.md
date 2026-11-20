@@ -48,4 +48,4 @@ python3 analyze.py
 ## Method note
 
 Experiments, code and analysis were produced with AI assistance (Claude) under the direction of the author, who is
-responsible for the claims. No licence has been chosen yet; all rights reserved until one is added.
+responsible for the claims. Code is released under the MIT licence (see `LICENSE`).
