@@ -1,0 +1,7 @@
+tern 3 250 loss 0.661 exact 0.000 cell 0.611 t 106s
+tern 3 500 loss 0.582 exact 0.000 cell 0.652 t 211s
+tern 3 750 loss 0.480 exact 0.010 cell 0.728 t 317s
+tern 3 1000 loss 0.396 exact 0.040 cell 0.784 t 426s
+tern 3 1250 loss 0.307 exact 0.082 cell 0.813 t 534s
+tern 3 1500 loss 0.293 exact 0.130 cell 0.839 t 642s
+{"1": {"exact": 0.099, "cell": 0.826465590484282, "mac": 0.0, "add": 3695712.0, "syn": 0.0, "act_sparsity": null, "w_sparsity": 0.32974777448071213}, "2": {"exact": 0.1225, "cell": 0.8312543446358229, "mac": 0.0, "add": 7391424.0, "syn": 0.0, "act_sparsity": null, "w_sparsity": 0.32974777448071213}, "4": {"exact": 0.1255, "cell": 0.8318143199196725, "mac": 0.0, "add": 14782848.0, "syn": 0.0, "act_sparsity": null, "w_sparsity": 0.32974777448071213}, "8": {"exact": 0.126, "cell": 0.8319881053525914, "mac": 0.0, "add": 29565696.0, "syn": 0.0, "act_sparsity": null, "w_sparsity": 0.32974777448071213}, "16": {"exact": 0.126, "cell": 0.8320074148451378, "mac": 0.0, "add": 59131392.0, "syn": 0.0, "act_sparsity": null, "w_sparsity": 0.32974777448071213}}

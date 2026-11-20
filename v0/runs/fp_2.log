@@ -1,0 +1,7 @@
+fp 2 250 loss 0.543 exact 0.000 cell 0.678 t 106s
+fp 2 500 loss 0.231 exact 0.258 cell 0.874 t 211s
+fp 2 750 loss 0.142 exact 0.570 cell 0.935 t 313s
+fp 2 1000 loss 0.091 exact 0.690 cell 0.954 t 416s
+fp 2 1250 loss 0.100 exact 0.762 cell 0.961 t 518s
+fp 2 1500 loss 0.094 exact 0.782 cell 0.965 t 649s
+{"1": {"exact": 0.478, "cell": 0.9349463196107206, "mac": 5529600.0, "add": 0.0, "syn": 0.0, "act_sparsity": null, "w_sparsity": null}, "2": {"exact": 0.7455, "cell": 0.9622306325789758, "mac": 11059200.0, "add": 0.0, "syn": 0.0, "act_sparsity": null, "w_sparsity": null}, "4": {"exact": 0.756, "cell": 0.9640071058932571, "mac": 22118400.0, "add": 0.0, "syn": 0.0, "act_sparsity": null, "w_sparsity": null}, "8": {"exact": 0.7545, "cell": 0.9637753919826987, "mac": 44236800.0, "add": 0.0, "syn": 0.0, "act_sparsity": null, "w_sparsity": null}, "16": {"exact": 0.7545, "cell": 0.9637753919826987, "mac": 88473600.0, "add": 0.0, "syn": 0.0, "act_sparsity": null, "w_sparsity": null}}

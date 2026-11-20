@@ -1,0 +1,8 @@
+*.pt
+*.ckpt
+.venv/
+__pycache__/
+data/*.csv
+results/
+*.zip
+oci/
