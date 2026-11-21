@@ -50,3 +50,25 @@ laptop pilot). Exact accuracy (%) on 2,000 validation puzzles by number of recur
 One seed each. Neither part restores refinement on its own: with 85 % of the core weights in full precision and only
 the cell-mixing layers ternary, recursion adds 4.4 points where the full-precision model adds 26.6. The remaining
 arms (per-output gain, split latent/answer networks, depth, width) are still running here and at batch 256 on Kaggle.
+
+## Stage A2 — 6x6 Sudoku, mixed precision (ARM CPU, width 64, 1,500 steps, batch 128, seed 1, validation)
+
+Ternary arms at lr 2e-2, full-precision arm at lr 8e-3. Exact accuracy (%) by recursion steps at test time.
+(Per-run JSON is still on the server; only this summary has been retrieved.)
+
+| Arm | Flags | K = 1 | K = 2 | K = 4 | K = 16 |
+| --- | --- | --- | --- | --- | --- |
+| tern | | 33.6 | 52.3 | 55.7 | 56.1 |
+| tern, per-output gain | `--wscale row` | 39.7 | 60.8 | 63.8 | 63.9 |
+| tern, fp channel layers | `--fp_parts ch` | 37.8 | 74.4 | 73.6 | 73.4 |
+| tern, fp cell-mixing layers | `--fp_parts tok` | 54.8 | 75.9 | 78.3 | 78.4 |
+| tern, gain + fp cell-mixing | `--wscale row --fp_parts tok` | 57.0 | 78.9 | 81.8 | 81.7 |
+| spike, fp cell-mixing | `--mode spike --fp_parts tok` | 33.5 | 48.7 | 52.8 | 52.9 |
+| split nets, both ternary | `--split 1` | 35.5 | 65.7 | 64.6 | 64.2 |
+| split nets, fp answer net | `--split 1 --fp_net y` | 46.5 | 49.4 | 50.9 | 51.0 |
+| split nets, fp latent net | `--split 1 --fp_net z` | 59.5 | 87.0 | 88.0 | 88.1 |
+| split nets, both fp | `--mode fp --split 1` | 68.8 | 89.2 | 88.6 | 88.4 |
+
+A full-precision latent network with a ternary answer network is within a point of the all-full-precision split
+model; the reverse is worse than all-ternary. One seed on the easy task, and 6x6 and 9x9 already disagree on
+cell-mixing precision (+22.6 points here, nothing on the 9x9 laptop run above), so this is a lead, not a result.
