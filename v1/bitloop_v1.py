@@ -303,7 +303,8 @@ def main(argv=None):
     if os.path.exists(ck_path):
         ck = torch.load(ck_path, map_location=dev, weights_only=False)
         model.load_state_dict(ck["model"]); opt.load_state_dict(ck["opt"]); sched.load_state_dict(ck["sched"])
-        g_cpu.set_state(ck["g_cpu"]); g_dev.set_state(ck["g_dev"]); step, log, elapsed = ck["step"], ck["log"], ck["elapsed"]
+        g_cpu.set_state(ck["g_cpu"].cpu()); g_dev.set_state(ck["g_dev"].cpu())   # generator states are CPU byte tensors, even for a CUDA generator
+        step, log, elapsed = ck["step"], ck["log"], ck["elapsed"]
         if ema: ema.shadow = ck["ema"]
         print(f"resumed {a.out} at step {step}", flush=True)
 
