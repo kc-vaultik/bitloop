@@ -37,8 +37,8 @@ networks, depth, width) to find which part of the loop needs precision.
 
 ## Stage A2 — first results (laptop GTX 1650 Ti, batch 64, 22,649 rating-0 puzzles, width 192, 8,000 steps)
 
-Per-run JSON and logs: `laptop_a2/` (mixed-precision arms) and the table below for the two reference arms from the
-earlier laptop pilot. Exact accuracy (%) on 2,000 validation puzzles by number of recursion steps at test time.
+Per-run JSON and logs: `laptop/` (`M_*` are the mixed-precision arms, `R0_*` the two reference arms from the earlier
+laptop pilot). Exact accuracy (%) on 2,000 validation puzzles by number of recursion steps at test time.
 
 | Arm | Full-precision share of core weights | K = 1 | K = 2 | K = 4 | K = 8 | K = 16 |
 | --- | --- | --- | --- | --- | --- | --- |
