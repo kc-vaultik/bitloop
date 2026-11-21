@@ -8,16 +8,25 @@ We use the authors' released code, Apache-2.0, https://github.com/rekursiv-ai/si
 `164f6776593516bb436aa8154799fcde1b97e163`, experiment `x182m` (8,000 steps, batch 384, 2-layer MLP-mixer, 512 hidden).
 We do not copy that code into this repository.
 
-Status (2026-11-20): **not yet run.** `BitLoop_stageC_probe.ipynb` is a 40-minute probe that measures speed and memory
-on a free Kaggle T4 and compares early accuracy with the authors' log. It has been checked statically (cells parse,
-the log parser is validated against the authors' published `x182m.log`) but never executed.
+Status (2026-11-21): **probe running, no accuracy or speed result yet.**
+
+- First execution (Kaggle, 2 x T4) stopped in setup after 4 minutes. The authors' package is named `code`; when
+  PyTorch is imported with the repository root on the import path, Python 3.13's debugger picks up that package
+  instead of the standard-library module of the same name and fails. Our check ran from the repository root. The
+  notebook now runs its import check from a neutral directory, and falls back to a preload wrapper for the dataset
+  builder if the authors' own `python -m code...` invocation fails for the same reason.
+- One measurement survived that run. Time per 31,104 x 512 by 512 x 2,048 matrix product plus SiLU on a T4:
+  float32 19.4 ms, bfloat16 21.6 ms, float16 3.0 ms. The published all-bfloat16 recipe gets no speed-up on this GPU.
+- The probe therefore has three arms: the published recipe (bfloat16, 40 minutes of training), and float16 and
+  float32 variants (20 minutes each). float16 is a deviation from the published recipe and would need its own
+  validation against the reported accuracy before it could serve as the baseline.
 
 Known risks the probe is meant to settle:
-- The recipe keeps the whole model in bfloat16. A T4 has no native bfloat16, so speed there is unknown.
+- Speed of the published recipe on a T4 (see the micro-benchmark above).
 - The authors used 16 GiB at batch 384; a T4 has 15 GiB.
 - On the authors' RTX 5090, 500 training steps take 175 s and one 38,400-puzzle evaluation takes 304 s. A full run
   on a T4 must evaluate rarely to fit a 12-hour session.
 
-Two changes to the third-party code, made by the notebook at run time: the dataset builder's random generator is
-seeded (20261120) so the 1,000-puzzle subset is reproducible, and two short experiment files are added that subclass
-the authors' `x182m` experiment.
+Changes to the third-party code, made by the notebook at run time: the dataset builder's random generator is
+seeded (20261120) so the 1,000-puzzle subset is reproducible, and three short experiment files are added that
+subclass the authors' `x182m` experiment. Third-party files are kept in `/tmp`, outside the notebook output.
