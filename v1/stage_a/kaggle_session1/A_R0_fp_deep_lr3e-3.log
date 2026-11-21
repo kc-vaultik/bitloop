@@ -1,0 +1,6 @@
+fp s1 500 loss 0.624 val exact 0.005 cell 0.593 t 600s
+fp s1 1000 loss 0.386 val exact 0.144 cell 0.758 t 1190s
+fp s1 1500 loss 0.312 val exact 0.164 cell 0.811 t 1779s
+fp s1 2000 loss 0.200 val exact 0.370 cell 0.894 t 2369s
+fp s1 2500 loss 0.167 val exact 0.507 cell 0.920 t 2958s
+time budget reached; checkpointed

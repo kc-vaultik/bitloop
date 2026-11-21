@@ -1,0 +1,17 @@
+fp s1 500 loss 0.800 val exact 0.000 cell 0.468 t 226s
+fp s1 1000 loss 0.737 val exact 0.000 cell 0.514 t 440s
+fp s1 1500 loss 0.695 val exact 0.000 cell 0.540 t 655s
+fp s1 2000 loss 0.660 val exact 0.000 cell 0.559 t 869s
+fp s1 2500 loss 0.662 val exact 0.000 cell 0.569 t 1084s
+fp s1 3000 loss 0.646 val exact 0.000 cell 0.574 t 1300s
+fp s1 3500 loss 0.621 val exact 0.000 cell 0.580 t 1515s
+fp s1 4000 loss 0.607 val exact 0.000 cell 0.588 t 1730s
+fp s1 4500 loss 0.622 val exact 0.000 cell 0.590 t 1945s
+fp s1 5000 loss 0.603 val exact 0.000 cell 0.598 t 2160s
+fp s1 5500 loss 0.613 val exact 0.001 cell 0.607 t 2376s
+fp s1 6000 loss 0.611 val exact 0.003 cell 0.614 t 2591s
+fp s1 6500 loss 0.614 val exact 0.001 cell 0.620 t 2807s
+fp s1 7000 loss 0.565 val exact 0.003 cell 0.620 t 3023s
+fp s1 7500 loss 0.567 val exact 0.002 cell 0.623 t 3239s
+fp s1 8000 loss 0.584 val exact 0.003 cell 0.623 t 3455s
+{"1": 0.0, "2": 0.0006, "4": 0.0034, "8": 0.0032, "16": 0.0032}

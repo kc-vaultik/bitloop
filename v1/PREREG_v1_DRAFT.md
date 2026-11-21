@@ -3,6 +3,28 @@
 Status: draft written 2026-11-20. Items marked [A] are filled from the exploratory Stage A pilot
 (validation split only) and then this file is frozen and hashed before any Stage B run.
 
+## Revision 2026-11-21 (still a draft; nothing frozen)
+
+Stage A (exploratory, one seed, validation only) changed what Stage B should test.
+
+Observed:
+- 9x9, rating-0 puzzles: tern scores 15.5 % at K = 1, 2, 4 and 16 and at three learning rates a decade apart;
+  fp goes 15.5 -> 31.6 -> 71.6 % over the same steps. The ternary core does not refine across recursion steps.
+- 6x6: tern at width 128 and 6,000 steps reaches 90.3 % against fp 98.8 % (width 64, same steps); spike trails
+  tern by 35-45 points at matched width, so "spiking is nearly free" (old H3) is withdrawn as a hypothesis.
+- Rating 1-9 and full difficulty are at floor for every arm at this budget and are dropped from Stage B.
+
+Stage B is therefore re-centred on one question: which part of the recursive loop needs precision for
+refinement to occur. Candidate confirmatory hypotheses, to be chosen and frozen after Stage A2:
+- M1: keeping only the cell-mixing layers in full precision (about 15 % of core weights) restores refinement,
+      defined as accuracy at K = 4 exceeding accuracy at K = 1 by at least 20 points.
+- M2: a learned per-output gain on ternary layers restores refinement without any full-precision matrix.
+- M3: with separate latent and answer networks, precision matters in one of them and not the other.
+- M4: refinement gain (accuracy at K = 4 minus K = 1) is the mediator: across arms and seeds it predicts
+      final accuracy better than core bit count does.
+Primary metric stays exact-puzzle accuracy; refinement gain is added as a pre-specified secondary metric.
+Stage A2 runs these arms once each on rating-0 9x9 (laptop GPU) and on 6x6 (ARM CPU) to pick which to confirm.
+
 ## Working title
 Bits for loops: ternary, event-driven recursive reasoning cores, and what precision costs under weight-tied recursion.
 

@@ -1,0 +1,15 @@
+{
+ "A_R0_tern_lr1e-2": "done",
+ "A_R0_fp_lr3e-3": "done",
+ "A_R0_fp_lr1e-2": "done",
+ "A_R0_spike_lr1e-2": "done",
+ "A_R0_tern_lr3e-2": "done",
+ "A_R0_tern_lr3e-3": "done",
+ "A_R0_spike_lr3e-2": "done",
+ "A_R9_fp_lr3e-3": "done",
+ "A_R0_spike_lr3e-3": "done",
+ "A_R9_fp_lr1e-2": "done",
+ "A_R9_tern_lr1e-2": "done",
+ "A_R9_spike_lr1e-2": "paused at time budget",
+ "A_R0_fp_deep_lr3e-3": "paused at time budget"
+}

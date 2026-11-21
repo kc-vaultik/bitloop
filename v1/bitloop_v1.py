@@ -34,10 +34,12 @@ CNT = Counter()
 
 # ----------------------------------------------------------------------------- layers
 class QLinear(nn.Module):
-    def __init__(self, i, o, mode):
+    def __init__(self, i, o, mode, wscale="tensor"):
         super().__init__()
         self.w = nn.Parameter(torch.empty(o, i)); nn.init.kaiming_uniform_(self.w, a=math.sqrt(5))
         self.mode = mode; self.wq = None
+        # "row": one learnable full-precision gain per output unit on top of the ternary matrix (ternary layers only)
+        self.gain = nn.Parameter(torch.ones(o)) if (wscale == "row" and mode != "fp") else None
 
     def refresh(self):
         """Quantize once per optimizer step; the same tensor is reused by every recursion pass."""
@@ -63,7 +65,8 @@ class QLinear(nn.Module):
                     CNT.act_n += c[0].numel(); CNT.act_nz += (c != 0).float().sum().item() / B
                 else:
                     CNT.add += ntok * nzw.sum().item()
-        return F.linear(x, w)
+        out = F.linear(x, w)
+        return out if self.gain is None else out * self.gain
 
 
 def spike(x, smax, scale, group):
@@ -85,9 +88,9 @@ def spike(x, smax, scale, group):
 
 
 class MLP(nn.Module):
-    def __init__(self, d, h, mode, cfg):
+    def __init__(self, d, h, mode, cfg, wscale="tensor"):
         super().__init__()
-        self.a, self.b, self.mode, self.cfg = QLinear(d, h, mode), QLinear(h, d, mode), mode, cfg
+        self.a, self.b, self.mode, self.cfg = QLinear(d, h, mode, wscale), QLinear(h, d, mode, wscale), mode, cfg
 
     def _lin(self, lin, x):
         c, th = spike(x, *self.cfg)
@@ -106,10 +109,10 @@ def rms(x):
 
 
 class Block(nn.Module):
-    def __init__(self, d, L, mode, cfg):
+    def __init__(self, d, L, mode, cfg, fp_parts=(), wscale="tensor"):
         super().__init__()
-        self.tok = MLP(L, 2 * L, mode, cfg)   # mixes across cells, per channel
-        self.ch = MLP(d, 2 * d, mode, cfg)    # mixes across channels, per cell
+        self.tok = MLP(L, 2 * L, "fp" if "tok" in fp_parts else mode, cfg, wscale)   # mixes across cells, per channel
+        self.ch = MLP(d, 2 * d, "fp" if "ch" in fp_parts else mode, cfg, wscale)     # mixes across channels, per cell
 
     def forward(self, x):
         x = x + self.tok(rms(x).transpose(1, 2)).transpose(1, 2)
@@ -117,11 +120,15 @@ class Block(nn.Module):
 
 
 class BitLoop(nn.Module):
-    def __init__(self, L, V, d, mode, nb, n_lat, cfg):
+    def __init__(self, L, V, d, mode, nb, n_lat, cfg, fp_parts=(), wscale="tensor", split=False, fp_net="none"):
+        """fp_parts: which MLPs stay full precision ("tok", "ch"). split: separate weights for the answer update
+        (TRM shares one network for both). fp_net: with split, keep the latent ("z") or answer ("y") network in fp."""
         super().__init__()
         self.emb = nn.Embedding(V, d); self.pos = nn.Parameter(torch.randn(L, d) * 0.02)
         self.y0 = nn.Parameter(torch.randn(d) * 0.02); self.z0 = nn.Parameter(torch.randn(d) * 0.02)
-        self.net = nn.Sequential(*[Block(d, L, mode, cfg) for _ in range(nb)])
+        mk = lambda m: nn.Sequential(*[Block(d, L, m, cfg, fp_parts, wscale) for _ in range(nb)])
+        self.net = mk("fp" if (split and fp_net == "z") else mode)          # latent update (and answer update if shared)
+        self.net_y = mk("fp" if fp_net == "y" else mode) if split else None  # answer update when split
         self.head = nn.Linear(d, V - 1)
         self.n_lat = n_lat
 
@@ -135,7 +142,7 @@ class BitLoop(nn.Module):
         for _ in range(K):
             for _ in range(self.n_lat):
                 z = self.net(x + y + z)
-            y = self.net(y + z)
+            y = (self.net_y or self.net)(y + z)
             outs.append(self.head(rms(y)))
             y, z = y.detach(), z.detach()   # deep supervision: no gradient across steps
         return outs
@@ -271,6 +278,8 @@ def get_args(argv=None):
     ap.add_argument("--n_lat", type=int, default=2); ap.add_argument("--ktrain", type=int, default=4)
     ap.add_argument("--smax", type=int, default=4); ap.add_argument("--spike_scale", default="token")
     ap.add_argument("--group", type=int, default=32)
+    ap.add_argument("--fp_parts", default=""); ap.add_argument("--wscale", default="tensor")
+    ap.add_argument("--split", type=int, default=0); ap.add_argument("--fp_net", default="none")
     ap.add_argument("--steps", type=int, default=8000); ap.add_argument("--bs", type=int, default=256)
     ap.add_argument("--lr", type=float, default=3e-3); ap.add_argument("--wd", type=float, default=0.01)
     ap.add_argument("--ema", type=float, default=0.0)
@@ -294,7 +303,8 @@ def main(argv=None):
     side = D["side"]; L, V = side * side, side + 1
     Ptr, Str = D["tr"]; Pva, Sva = D["va"]; Pev, Sev = D[a.eval_split]
     torch.manual_seed(a.seed)
-    model = BitLoop(L, V, a.d, a.mode, a.nb, a.n_lat, (a.smax, a.spike_scale, a.group)).to(dev)
+    model = BitLoop(L, V, a.d, a.mode, a.nb, a.n_lat, (a.smax, a.spike_scale, a.group),
+                    fp_parts=tuple(p for p in a.fp_parts.split(',') if p), wscale=a.wscale, split=bool(a.split), fp_net=a.fp_net).to(dev)
     opt = torch.optim.AdamW(model.parameters(), lr=a.lr, weight_decay=a.wd)
     sched = torch.optim.lr_scheduler.OneCycleLR(opt, a.lr, total_steps=a.steps, pct_start=0.05)
     ema = EMA(model, a.ema) if a.ema > 0 else None
@@ -340,7 +350,9 @@ def main(argv=None):
     if ema: ema.swap(model)
     final = evaluate(model, Pev, Sev, Ks, dev, count=True, ratings=D.get(a.eval_split + "_r"))
     out = dict(args=vars(a), device=str(dev), params=sum(p.numel() for p in model.parameters()),
-               core_params=sum(p.numel() for p in model.net.parameters()), n_train=len(Ptr), n_eval=len(Pev),
+               core_params=sum(p.numel() for n, p in model.named_parameters() if n.startswith('net')),
+               core_fp_params=sum(m.w.numel() for m in model.modules() if isinstance(m, QLinear) and m.mode == 'fp'),
+               core_ternary_params=sum(m.w.numel() for m in model.modules() if isinstance(m, QLinear) and m.mode != 'fp'), n_train=len(Ptr), n_eval=len(Pev),
                dropped_for_leakage=D.get("dropped", 0), log=log, final=final, train_s=elapsed + time.time() - t_start,
                torch=torch.__version__)
     torch.save(model.state_dict(), a.out + ".pt")

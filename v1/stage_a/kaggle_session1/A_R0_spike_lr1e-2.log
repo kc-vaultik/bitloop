@@ -1,0 +1,17 @@
+spike s1 500 loss 0.629 val exact 0.055 cell 0.601 t 427s
+spike s1 1000 loss 0.618 val exact 0.074 cell 0.619 t 840s
+spike s1 1500 loss 0.603 val exact 0.102 cell 0.637 t 1253s
+spike s1 2000 loss 0.549 val exact 0.105 cell 0.646 t 1665s
+spike s1 2500 loss 0.537 val exact 0.100 cell 0.646 t 2078s
+spike s1 3000 loss 0.594 val exact 0.099 cell 0.648 t 2490s
+spike s1 3500 loss 0.563 val exact 0.105 cell 0.660 t 2903s
+spike s1 4000 loss 0.529 val exact 0.114 cell 0.658 t 3316s
+spike s1 4500 loss 0.555 val exact 0.123 cell 0.662 t 3732s
+spike s1 5000 loss 0.541 val exact 0.115 cell 0.662 t 4145s
+spike s1 5500 loss 0.543 val exact 0.118 cell 0.663 t 4558s
+spike s1 6000 loss 0.510 val exact 0.118 cell 0.666 t 4971s
+spike s1 6500 loss 0.526 val exact 0.116 cell 0.672 t 5384s
+spike s1 7000 loss 0.503 val exact 0.123 cell 0.674 t 5797s
+spike s1 7500 loss 0.512 val exact 0.129 cell 0.679 t 6210s
+spike s1 8000 loss 0.495 val exact 0.128 cell 0.694 t 6623s
+{"1": 0.1326, "2": 0.1402, "4": 0.143, "8": 0.1434, "16": 0.1434}

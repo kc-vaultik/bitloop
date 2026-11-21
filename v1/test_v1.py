@@ -65,6 +65,21 @@ per_pass = 2 * (64 * (36 * 72 * 2) + 36 * (64 * 128 * 2))
 assert r["mac"] == per_pass * 3 * 4, (r["mac"], per_pass * 12)
 print("5 op count ok")
 
+# 5b. Mixed-precision options: shapes, finite outputs, and that the right layers are ternary or full precision
+def kinds(m): return {n: mod.mode for n, mod in m.named_modules() if isinstance(mod, B.QLinear)}
+mk = lambda **kw: B.BitLoop(81, 10, 48, "tern", 2, 2, (4, "token", 32), **kw)
+k = kinds(mk(fp_parts=("tok",))); assert all((v == "fp") == (".tok." in n) for n, v in k.items()), k
+k = kinds(mk(fp_parts=("ch",))); assert all((v == "fp") == (".ch." in n) for n, v in k.items()), k
+k = kinds(mk(split=True, fp_net="y")); assert all((v == "fp") == n.startswith("net_y") for n, v in k.items()) and any(n.startswith("net_y") for n in k), k
+k = kinds(mk(split=True, fp_net="z")); assert all((v == "fp") == n.startswith("net.") for n, v in k.items()), k
+m = mk(wscale="row"); assert sum(1 for mod in m.modules() if isinstance(mod, B.QLinear) and mod.gain is not None) == 8
+for kw in [dict(fp_parts=("tok",)), dict(wscale="row"), dict(split=True, fp_net="y"), dict(split=True)]:
+    m = mk(**kw); o = m(Pt[:8], 3)[-1]; assert o.shape == (8, 81, 9) and torch.isfinite(o).all()
+    o.square().mean().backward(); assert all(p.grad is not None for n, p in m.named_parameters() if n.startswith("net"))
+    for mod in m.modules():
+        if isinstance(mod, B.QLinear) and mod.mode != "fp": assert set((mod.wq / mod.w.abs().mean().clamp(min=1e-5)).detach().round().unique().tolist()) <= {-1.0, 0.0, 1.0}
+print("5b mixed precision ok")
+
 # 6. Checkpoint/resume reproduces an uninterrupted run exactly
 def run(out, extra=()):
     return subprocess.run([sys.executable, "bitloop_v1.py", "--task", "sudoku6", "--data", os.path.join(v0dir, "data.npz"),
