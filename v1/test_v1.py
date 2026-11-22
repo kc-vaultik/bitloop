@@ -95,4 +95,32 @@ assert ja["final"] == jb["final"] and [l[:4] for l in ja["log"]] == [l[:4] for l
 sa, sb = torch.load("/tmp/ra.pt"), torch.load("/tmp/rb.pt")
 assert all(torch.equal(sa[k], sb[k]) for k in sa)
 print("6 resume ok")
+# 7. Bit-width ladder, quantization ramp and warm start
+m = mk()
+for bits, nlev in [(0, 3), (3, 7), (4, 15)]:
+    B.QCFG.bits, B.QCFG.lam = bits, 1.0
+    m(Pt[:4], 1)
+    for mod in m.modules():
+        if isinstance(mod, B.QLinear) and mod.mode != "fp": assert mod.wq.detach().unique().numel() <= nlev, (bits, mod.wq.unique().numel())
+B.QCFG.bits = 0
+torch.manual_seed(0); mt = mk(); torch.manual_seed(0); mf = B.BitLoop(81, 10, 48, "fp", 2, 2, (4, "token", 32))
+B.QCFG.lam = 0.0; o0 = mt(Pt[:4], 2)[-1]; B.QCFG.lam = 1.0; o1 = mt(Pt[:4], 2)[-1]; of = mf(Pt[:4], 2)[-1]
+assert torch.allclose(o0, of, atol=1e-6), "lam = 0 must equal the full-precision forward pass"
+assert not torch.allclose(o1, of, atol=1e-3), "lam = 1 must differ from full precision"
+B.QCFG.lam = 0.5; mt(Pt[:4], 2)[-1].square().mean().backward(); B.QCFG.lam = 1.0
+assert all(p.grad is not None and torch.isfinite(p.grad).all() for n, p in mt.named_parameters() if n.startswith("net"))
+for f in ["/tmp/wf.json", "/tmp/wf.pt", "/tmp/wt.json", "/tmp/wt.pt", "/tmp/wt.ckpt", "/tmp/wu.json", "/tmp/wu.pt", "/tmp/wu.ckpt"]:
+    if os.path.exists(f): os.remove(f)
+base = [sys.executable, "bitloop_v1.py", "--task", "sudoku6", "--data", os.path.join(v0dir, "data.npz"), "--d", "32", "--steps", "40",
+        "--bs", "32", "--log_every", "20", "--ckpt_every", "20", "--threads", "1", "--device", "cpu"]
+r = subprocess.run(base + ["--mode", "fp", "--out", "/tmp/wf"], capture_output=True, text=True); assert r.returncode == 0, r.stderr[-800:]
+warm = ["--mode", "tern", "--init_from", "/tmp/wf.pt", "--qramp", "30", "--wbits", "3"]
+r = subprocess.run(base + warm + ["--out", "/tmp/wt"], capture_output=True, text=True)
+assert r.returncode == 0 and "initialised from" in r.stdout, r.stderr[-800:]
+r1 = subprocess.run(base + warm + ["--out", "/tmp/wu", "--max_minutes", "0.000001"], capture_output=True, text=True); assert r1.returncode == 3
+r2 = subprocess.run(base + warm + ["--out", "/tmp/wu"], capture_output=True, text=True); assert r2.returncode == 0 and "resumed" in r2.stdout
+jt, ju = json.load(open("/tmp/wt.json")), json.load(open("/tmp/wu.json"))
+assert jt["final"] == ju["final"], "ramp + warm start must survive a resume unchanged"
+assert jt["args"]["wbits"] == 3 and jt["final"]["1"]["mac"] > 0 and jt["final"]["1"]["add"] == 0
+print("7 bit-width, ramp, warm start ok")
 print("ALL TESTS PASSED")

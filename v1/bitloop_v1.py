@@ -32,6 +32,20 @@ class Counter:
 CNT = Counter()
 
 
+class QCfg:
+    """Process-wide weight-quantizer settings for non-fp layers.
+
+    bits: 0 or 2 = ternary {-1, 0, +1} x mean|w| (the default arm); b >= 3 = symmetric uniform, 2^b - 1 levels.
+    lam:  blend between full-precision (0) and quantized (1) weights, used only by the --qramp training schedule.
+          Evaluation always runs at lam = 1.
+    """
+    bits = 0
+    lam = 1.0
+
+
+QCFG = QCfg()
+
+
 # ----------------------------------------------------------------------------- layers
 class QLinear(nn.Module):
     def __init__(self, i, o, mode, wscale="tensor"):
@@ -46,15 +60,20 @@ class QLinear(nn.Module):
         if self.mode == "fp":
             self.wq = self.w
         else:
-            s = self.w.abs().mean().clamp(min=1e-5)
-            q = (self.w / s).round().clamp(-1, 1) * s
-            self.wq = self.w + (q - self.w).detach()
+            if QCFG.bits <= 2:
+                s = self.w.abs().mean().clamp(min=1e-5)
+                q = (self.w / s).round().clamp(-1, 1) * s
+            else:                                   # symmetric uniform quantizer, scale from the LSQ initialisation rule
+                qp = 2 ** (QCFG.bits - 1) - 1
+                s = (2 * self.w.abs().mean() / math.sqrt(qp)).clamp(min=1e-5)
+                q = (self.w / s).round().clamp(-qp, qp) * s
+            self.wq = self.w + QCFG.lam * (q - self.w).detach()   # straight-through; lam < 1 only during a ramp
 
     def forward(self, x, x_is_spike=False, counts=None):
         w = self.wq
         if CNT.on:
             B = x.shape[0]; ntok = x[0].numel() / x.shape[-1]
-            if self.mode == "fp":
+            if self.mode == "fp" or QCFG.bits > 2:   # multi-bit weights need multiplies, not just adds
                 CNT.mac += ntok * w.numel()
             else:
                 nzw = (w != 0).float()
@@ -227,6 +246,7 @@ RBINS = [(0, 0), (1, 9), (10, 49), (50, 10 ** 9)]
 @torch.no_grad()
 def evaluate(model, P, S, Ks, dev, count=False, bs=1000, ratings=None):
     model.eval(); res = {}
+    lam_train, QCFG.lam = QCFG.lam, 1.0     # always evaluate the fully quantized model
     for K in Ks:
         CNT.reset(); ex = cell = n = 0; solved = []
         for i in range(0, len(P), bs):
@@ -248,6 +268,7 @@ def evaluate(model, P, S, Ks, dev, count=False, bs=1000, ratings=None):
                      act_sparsity=1 - CNT.act_nz / CNT.act_n if CNT.act_n else None,
                      w_sparsity=1 - CNT.w_nz / CNT.w_n if CNT.w_n else None)
         res[K] = r
+    QCFG.lam = lam_train
     return res
 
 
@@ -287,6 +308,9 @@ def get_args(argv=None):
     ap.add_argument("--log_every", type=int, default=500); ap.add_argument("--ckpt_every", type=int, default=500)
     ap.add_argument("--out", default="run"); ap.add_argument("--device", default="auto")
     ap.add_argument("--threads", type=int, default=0); ap.add_argument("--max_minutes", type=float, default=0)
+    ap.add_argument("--wbits", type=int, default=0, help="weight bits for non-fp layers: 0 = ternary, >= 3 = uniform")
+    ap.add_argument("--init_from", default="", help="state dict (.pt) to start from, e.g. a trained fp model")
+    ap.add_argument("--qramp", type=int, default=0, help="steps over which weights go from fp to quantized (0 = off)")
     return ap.parse_args(argv)
 
 
@@ -303,6 +327,7 @@ def main(argv=None):
     side = D["side"]; L, V = side * side, side + 1
     Ptr, Str = D["tr"]; Pva, Sva = D["va"]; Pev, Sev = D[a.eval_split]
     torch.manual_seed(a.seed)
+    QCFG.bits, QCFG.lam = a.wbits, 1.0
     model = BitLoop(L, V, a.d, a.mode, a.nb, a.n_lat, (a.smax, a.spike_scale, a.group),
                     fp_parts=tuple(p for p in a.fp_parts.split(',') if p), wscale=a.wscale, split=bool(a.split), fp_net=a.fp_net).to(dev)
     opt = torch.optim.AdamW(model.parameters(), lr=a.lr, weight_decay=a.wd)
@@ -317,6 +342,12 @@ def main(argv=None):
         step, log, elapsed = ck["step"], ck["log"], ck["elapsed"]
         if ema: ema.shadow = ck["ema"]
         print(f"resumed {a.out} at step {step}", flush=True)
+    elif a.init_from:
+        sd = torch.load(a.init_from, map_location=dev, weights_only=False)
+        sd = {k: v for k, v in sd.items() if not k.endswith(".wq")}   # early checkpoints stored the quantized copy
+        missing, unexpected = model.load_state_dict(sd, strict=False)
+        assert not unexpected and all(k.endswith(".gain") for k in missing), (missing, unexpected)
+        print(f"initialised from {a.init_from}", flush=True)
 
     def save():
         tmp = ck_path + ".tmp"
@@ -328,6 +359,7 @@ def main(argv=None):
     Ks = [int(k) for k in a.eval_ks.split(",")]
     while step < a.steps:
         model.train(); step += 1
+        QCFG.lam = min(1.0, step / a.qramp) if a.qramp > 0 else 1.0
         idx = torch.randint(0, len(Ptr), (a.bs,), generator=g_cpu)
         p, s = augment(Ptr[idx].to(dev), Str[idx].to(dev), side, g_dev)
         outs = model(p, a.ktrain)
