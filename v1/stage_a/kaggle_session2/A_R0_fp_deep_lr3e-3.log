@@ -1,0 +1,19 @@
+fp s1 500 loss 0.624 val exact 0.005 cell 0.593 t 600s
+fp s1 1000 loss 0.386 val exact 0.144 cell 0.758 t 1190s
+fp s1 1500 loss 0.312 val exact 0.164 cell 0.811 t 1779s
+fp s1 2000 loss 0.200 val exact 0.370 cell 0.894 t 2369s
+fp s1 2500 loss 0.167 val exact 0.507 cell 0.920 t 2958s
+time budget reached; checkpointed
+Traceback (most recent call last):
+  File "/kaggle/working/bitloop_v1.py", line 366, in <module>
+    raise SystemExit(main())
+                     ~~~~^^
+  File "/kaggle/working/bitloop_v1.py", line 315, in main
+    model.load_state_dict(ck["model"]); opt.load_state_dict(ck["opt"]); sched.load_state_dict(ck["sched"])
+    ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.13/dist-packages/torch/nn/modules/module.py", line 2639, in load_state_dict
+    raise RuntimeError(
+    ...<3 lines>...
+    )
+RuntimeError: Error(s) in loading state_dict for BitLoop:
+	Unexpected key(s) in state_dict: "net.0.tok.a.wq", "net.0.tok.b.wq", "net.0.ch.a.wq", "net.0.ch.b.wq", "net.1.tok.a.wq", "net.1.tok.b.wq", "net.1.ch.a.wq", "net.1.ch.b.wq". 

@@ -72,3 +72,37 @@ Ternary arms at lr 2e-2, full-precision arm at lr 8e-3. Exact accuracy (%) by re
 A full-precision latent network with a ternary answer network is within a point of the all-full-precision split
 model; the reverse is worse than all-ternary. One seed on the easy task, and 6x6 and 9x9 already disagree on
 cell-mixing precision (+22.6 points here, nothing on the 9x9 laptop run above), so this is a lead, not a result.
+
+## Stage A2 — 9x9 rating-0 puzzles on Kaggle (2 x T4, batch 256, 548,009 puzzles, width 192, 8,000 steps, seed 1)
+
+Per-run JSON and logs: `kaggle_session2/`. Exact accuracy (%) on 5,000 validation puzzles by recursion steps at test
+time. Reference rows are from `kaggle_session1/`.
+
+| Arm | Full-precision share of core weights | K = 1 | K = 2 | K = 4 | K = 16 |
+| --- | --- | --- | --- | --- | --- |
+| fp (reference) | 100 % | 15.5 | 31.6 | 71.6 | 72.7 |
+| tern (reference) | 0 % | 15.5 | 15.5 | 15.5 | 15.5 |
+| tern, 8 supervised steps, 3 latent updates | 0 % | 15.6 | 16.2 | 16.5 | 16.5 |
+| tern, per-output gain | 0 % | 15.3 | 16.6 | 17.9 | 18.0 |
+| tern, width 384 (3.5x the weights) | 0 % | 15.5 | 19.4 | 25.8 | 26.1 |
+| tern, fp cell-mixing layers | 15 % | 15.5 | 19.9 | 25.0 | 25.1 |
+| tern, gain + fp cell-mixing | 15 % | 15.5 | 21.3 | 28.2 | 28.7 |
+| tern, fp channel layers | 85 % | 15.5 | 21.3 | 34.9 | 35.6 |
+| split nets, both ternary | 0 % | 15.4 | 15.4 | 15.4 | 15.4 |
+| split nets, fp answer net | 50 % | 15.4 | 16.4 | 18.1 | 17.5 |
+| split nets, fp latent net | 50 % | 15.5 | 19.4 | 31.0 | 31.3 |
+| split nets, both fp | 100 % | 15.6 | 25.8 | 52.0 | 52.2 |
+
+Reading (one seed, exploratory):
+- Every arm starts at the same one-step accuracy (15.3-15.6 %). The whole gap is in refinement.
+- Precision in the latent network matters more than in the answer network (31.0 against 18.1), the same direction as
+  on 6x6. Unlike 6x6 it does not close the gap to the full-precision split model (52.0).
+- Splitting the networks costs the full-precision model 20 points (71.6 to 52.0), so the split design is a
+  diagnostic, not a candidate architecture.
+- An all-ternary core refines once it is wide enough: width 384 reaches 25.8 % with no full-precision core weights.
+- No mixed-precision arm comes within 35 points of full precision at this budget.
+- The laptop run above (batch 64, 22,649 puzzles) showed no gain from full-precision cell-mixing; here it adds 9.5
+  points. The laptop runs are under-trained and are not used for conclusions.
+
+Deviation: `A_R0_fp_deep_lr3e-3` could not resume. Its session-1 checkpoint holds quantized-weight buffers that the
+revised model no longer registers, so loading failed; the job has no result from this session.

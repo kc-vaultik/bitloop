@@ -1,0 +1,17 @@
+tern s1 500 loss 0.675 val exact 0.001 cell 0.557 t 218s
+tern s1 1000 loss 0.496 val exact 0.136 cell 0.688 t 427s
+tern s1 1500 loss 0.443 val exact 0.142 cell 0.716 t 636s
+tern s1 2000 loss 0.401 val exact 0.143 cell 0.734 t 845s
+tern s1 2500 loss 0.385 val exact 0.144 cell 0.749 t 1055s
+tern s1 3000 loss 0.414 val exact 0.148 cell 0.765 t 1264s
+tern s1 3500 loss 0.375 val exact 0.155 cell 0.792 t 1474s
+tern s1 4000 loss 0.316 val exact 0.166 cell 0.799 t 1683s
+tern s1 4500 loss 0.355 val exact 0.170 cell 0.812 t 1893s
+tern s1 5000 loss 0.337 val exact 0.182 cell 0.827 t 2102s
+tern s1 5500 loss 0.317 val exact 0.188 cell 0.829 t 2311s
+tern s1 6000 loss 0.287 val exact 0.229 cell 0.843 t 2521s
+tern s1 6500 loss 0.298 val exact 0.222 cell 0.851 t 2730s
+tern s1 7000 loss 0.287 val exact 0.229 cell 0.857 t 2939s
+tern s1 7500 loss 0.263 val exact 0.281 cell 0.869 t 3149s
+tern s1 8000 loss 0.264 val exact 0.287 cell 0.876 t 3359s
+{"1": 0.1548, "2": 0.2132, "4": 0.282, "8": 0.2868, "16": 0.2868}

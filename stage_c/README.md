@@ -8,15 +8,18 @@ We use the authors' released code, Apache-2.0, https://github.com/rekursiv-ai/si
 `164f6776593516bb436aa8154799fcde1b97e163`, experiment `x182m` (8,000 steps, batch 384, 2-layer MLP-mixer, 512 hidden).
 We do not copy that code into this repository.
 
-Status (2026-11-21): **probe running, no accuracy or speed result yet.**
+Status (2026-11-22): **probe running (third attempt), no accuracy or speed result yet.**
 
 - First execution (Kaggle, 2 x T4) stopped in setup after 4 minutes. The authors' package is named `code`; when
   PyTorch is imported with the repository root on the import path, Python 3.13's debugger picks up that package
   instead of the standard-library module of the same name and fails. Our check ran from the repository root. The
   notebook now runs its import check from a neutral directory, and falls back to a preload wrapper for the dataset
   builder if the authors' own `python -m code...` invocation fails for the same reason.
-- One measurement survived that run. Time per 31,104 x 512 by 512 x 2,048 matrix product plus SiLU on a T4:
-  float32 19.4 ms, bfloat16 21.6 ms, float16 3.0 ms. The published all-bfloat16 recipe gets no speed-up on this GPU.
+- Second execution stopped at the import check: the training code imports `pytest` at module level, and we had
+  installed without the authors' development tools. The notebook now installs that one package at the version their
+  lock file pins. Third execution launched 2026-11-22.
+- One measurement survived both runs. Time per 31,104 x 512 by 512 x 2,048 matrix product plus SiLU on a T4:
+  float32 19.4 / 19.3 ms, bfloat16 21.6 / 22.2 ms, float16 3.0 / 2.8 ms (first / second run). The published all-bfloat16 recipe gets no speed-up on this GPU.
 - The probe therefore has three arms: the published recipe (bfloat16, 40 minutes of training), and float16 and
   float32 variants (20 minutes each). float16 is a deviation from the published recipe and would need its own
   validation against the reported accuracy before it could serve as the baseline.
